@@ -51,11 +51,11 @@ kaniko-build/
 
 ```bash
 # 1. Login to your registry
-docker login ghcr.io -u <you>
+docker login ghcr.io -u dverdonschot
 
 # 2. Configure
-export REGISTRY=ghcr.io/<your-namespace>
-export VERSION=v1.25.0-fork1
+export REGISTRY=ghcr.io/dverdonschot
+export VERSION=v0.1.0-fork1
 
 # 3. Clone upstream once, into a sibling dir
 git clone https://github.com/chainguard-forks/kaniko.git ../kaniko-upstream
@@ -68,8 +68,30 @@ For a single-arch smoke test without pushing:
 
 ```bash
 cd ../kaniko-upstream
-REGISTRY=ghcr.io/<your-namespace> make images
+REGISTRY=ghcr.io/dverdonschot make images
 ```
+
+## Pull a pre-built image
+
+This repo's CI publishes multi-arch images to **GHCR** on every `v*` tag. No auth needed — images under `ghcr.io/dverdonschot/kaniko-build` on a public repo are public by default.
+
+The first release is `v0.1.0-fork1`. The image paths are:
+
+```bash
+# The default executor (recommended for CI builds in-cluster)
+docker pull ghcr.io/dverdonschot/executor:v0.1.0-fork1
+
+# With a busybox shell for debugging
+docker pull ghcr.io/dverdonschot/executor:v0.1.0-fork1-debug
+
+# No credential helpers (air-gapped use)
+docker pull ghcr.io/dverdonschot/executor:v0.1.0-fork1-slim
+
+# Cache warmer
+docker pull ghcr.io/dverdonschot/warmer:v0.1.0-fork1
+```
+
+The layout is `ghcr.io/<owner>/<image>:<tag>` where the owner is your GitHub username and the image is either `executor` or `warmer`. Variant is encoded in the tag suffix (`-debug`, `-slim`). For the exact convention see [docs/architecture.md](docs/architecture.md#tagging-convention).
 
 ## Verify
 

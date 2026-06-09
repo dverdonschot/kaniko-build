@@ -55,10 +55,10 @@ The upstream workflow builds on every PR for `linux/amd64` only, and on every ta
 ## Tagging convention
 
 ```
-<REGISTRY>/executor:<version>          # latest default
-<REGISTRY>/executor:<version>-debug
-<REGISTRY>/executor:<version>-slim
-<REGISTRY>/warmer:<version>
+ghcr.io/dverdonschot/executor:<version>          # latest default
+ghcr.io/dverdonschot/executor:<version>-debug
+ghcr.io/dverdonschot/executor:<version>-slim
+ghcr.io/dverdonschot/warmer:<version>
 ```
 
-Where `<version>` is the git tag we push (e.g. `v1.25.0-fork1`). We do not publish `:latest` from CI — only versioned tags — to make rollbacks deterministic.
+Where `<version>` is the git tag we push (e.g. `v0.1.0-fork1`). We do not publish `:latest` from CI — only versioned tags — to make rollbacks deterministic.
