@@ -13,8 +13,8 @@ How to cut a new release of our kaniko images.
 
 Bump rules:
 
-- **Patch** (`v1.25.0-fork1` → `v1.25.0-fork2`): security fix, credential-helper update, Go patch.
-- **Minor** (`v1.25.0-fork1` → `v1.26.0-fork1`): rebase onto newer upstream, Go minor bump.
+- **Patch** (`v0.1.0-fork1` → `v0.1.0-fork2`): security fix, credential-helper update, Go patch.
+- **Minor** (`v0.1.0-fork1` → `v0.2.0-fork1`): rebase onto newer upstream, Go minor bump.
 - **Major**: don't. We track the upstream major.
 
 ## 2. Rebase onto upstream (if needed)
@@ -30,12 +30,23 @@ git push --force-with-lease
 ## 3. Tag and push
 
 ```bash
-VERSION=v1.25.0-fork1
+VERSION=v0.1.0-fork1   # or whatever the next version is
 git tag -s "$VERSION" -m "Release $VERSION"
 git push origin "$VERSION"
 ```
 
-The tag push triggers `.github/workflows/images.yaml`, which builds all four targets for the full multi-arch set and pushes them.
+The tag push triggers `.github/workflows/images.yaml`, which builds all four targets for the full multi-arch set and pushes them to `ghcr.io/dverdonschot/{executor,warmer}:<version>[-<variant>]`.
+
+If the workflow fails on action-resolution time (e.g. a SHA we pinned doesn't exist on the GHA index), fix the SHA, delete and re-push the tag:
+
+```bash
+git tag -d "$VERSION"
+git push origin :refs/tags/"$VERSION"
+# fix the workflow
+git push origin main
+git tag -a "$VERSION" -m "Release $VERSION"
+git push origin "$VERSION"
+```
 
 ## 4. Watch CI
 
