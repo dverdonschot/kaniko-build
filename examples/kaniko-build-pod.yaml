@@ -1,0 +1,45 @@
+# Example: kaniko running in a Kubernetes Pod
+#
+# This is a starting point for running kaniko against a Dockerfile in a git
+# repo and pushing the result to a registry. Replace placeholders before use.
+#
+# Requires:
+#   - A ServiceAccount in the same namespace with permissions to create pods
+#     (or use a dedicated build namespace + RBAC).
+#   - A registry credential Secret named "registry-credentials" in the same
+#     namespace, created with:
+#       kubectl create secret docker-registry registry-credentials \
+#         --docker-server=<REGISTRY> --docker-username=<USER> \
+#         --docker-password=<TOKEN> --namespace=<NS>
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kaniko-build
+spec:
+  restartPolicy: Never
+  containers:
+    - name: kaniko
+      # Pin to a specific digest in production; the versioned tag is for
+      # local testing. Example digest shown as a placeholder.
+      image: ghcr.io/<your-namespace>/executor:v1.25.0-fork1
+      args:
+        - --context=git://<git-server>/<org>/<repo>.git#<branch>
+        - --destination=<REGISTRY>/<repo>/<image>:<tag>
+        - --cache=true
+      env:
+        # The credential helper inside the image reads the secret via these
+        # mount paths; adapt to whichever registry you use.
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /kaniko/.docker/config.json
+      volumeMounts:
+        - name: registry-credentials
+          mountPath: /kaniko/.docker
+          readOnly: true
+  volumes:
+    - name: registry-credentials
+      secret:
+        secretName: registry-credentials
+        items:
+          - key: .dockerconfigjson
+            path: config.json

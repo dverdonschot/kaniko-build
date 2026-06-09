@@ -1,0 +1,142 @@
+name: Build images
+
+# Triggers:
+#   - pull_request against main:  build linux/amd64 only, no push (CI sanity check)
+#   - push of a v* tag:          build the full multi-arch set, push to REGISTRY
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+  push:
+    tags:
+      - 'v*'
+
+permissions: {}
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+  UPSTREAM: chainguard-forks/kaniko
+
+jobs:
+  build-images:
+    concurrency:
+      # Cancel a previous in-flight run for the same ref.
+      group: build-images-${{ matrix.image }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    permissions:
+      contents: read   # read repo contents
+      packages: write  # push to GHCR
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: executor
+            target: kaniko-executor
+            platforms: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+            tag: latest
+          - image: executor-debug
+            target: kaniko-debug
+            platforms: linux/amd64,linux/arm64,linux/s390x
+            tag: debug
+          - image: executor-slim
+            target: kaniko-slim
+            platforms: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+            tag: slim
+          - image: warmer
+            target: kaniko-warmer
+            platforms: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+            tag: latest-warmer
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout this repo
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Clone upstream kaniko source
+        run: |
+          git clone --depth 1 "https://github.com/${{ env.UPSTREAM }}.git" /tmp/kaniko
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df948d # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # PRs build only the native platform; tag pushes build the full matrix.
+      - name: Resolve platforms for this run
+        id: platforms
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
+          else
+            platforms="${{ matrix.platforms }}"
+            echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
+        with:
+          platforms: ${{ steps.platforms.outputs.platforms }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Determine image ref
+        id: ref
+        run: |
+          if [[ "${{ matrix.image }}" == "warmer" ]]; then
+            echo "image=${{ env.REGISTRY }}/warmer:${{ github.ref_name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image=${{ env.REGISTRY }}/executor:${{ github.ref_name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build (and push) image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: /tmp/kaniko
+          file: /tmp/kaniko/deploy/Dockerfile
+          platforms: ${{ steps.platforms.outputs.platforms }}
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.ref.outputs.image }}
+          target: ${{ matrix.target }}
+          no-cache-filters: certs
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  sign-images:
+    # Only on tag pushes. Signs every image that the build job pushed.
+    needs: build-images
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC for keyless cosign
+      contents: read
+      packages: write
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.10.1
+
+      - name: Sign executor
+        env:
+          REGISTRY: ghcr.io/${{ github.repository_owner }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          for variant in "" "-debug" "-slim"; do
+            img="${REGISTRY}/executor:${VERSION}${variant}"
+            echo "Signing $img"
+            cosign sign --yes "$img"
+          done
+          cosign sign --yes "${REGISTRY}/warmer:${VERSION}"
