@@ -5,6 +5,7 @@ Chronological index of ADRs for this project.
 | #    | Title                                       | Status   | Date       |
 |------|---------------------------------------------|----------|------------|
 | 0001 | [Scratch base + multi-arch build](0001-scratch-base-and-multi-arch.md) | Accepted | 2026-06-09 |
+| 0002 | [Rootless kaniko on Fedora Silverblue](0002-rootless-kaniko-on-silverblue.md) | Proposed | 2026-06-12 |
 
 ## Conventions
 

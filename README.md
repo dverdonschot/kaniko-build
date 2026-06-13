@@ -5,8 +5,9 @@ Build, sign, and publish a hardened `scratch`-based kaniko image (executor / deb
 ## Status
 
 - **Status:** active
-- **Phase:** Phase 1 — local multi-arch build
-- **Owner:** Dennis
+- **Phase:** Phase 1 — local multi-arch build (kaniko images) — published `v0.1.0-fork1`
+- **Demo PoC:** Phase 0 — Alpine + uv + Python via rootless kaniko (in progress, see [plans/2026-06-12-demo-alpine-uv-poc.md](plans/2026-06-12-demo-alpine-uv-poc.md))
+- **Owner:** _(project owner)_
 - **Upstream:** https://github.com/chainguard-forks/kaniko (Apache-2.0)
 - **Plan:** [plans/2026-06-09-build-chainguard-kaniko.md](plans/2026-06-09-build-chainguard-kaniko.md)
 
@@ -33,15 +34,21 @@ kaniko-build/
 │       └── upstream.md            # links + notes on the Chainguard fork
 ├── plans/
 │   ├── 2026-06-09-build-chainguard-kaniko.md   # top-level plan (1 page)
+│   ├── 2026-06-12-demo-alpine-uv-poc.md        # demo PoC plan
+│   ├── 2026-06-12-technical-refinement.md     # demo PoC technical refinement
 │   └── archive/                   # completed/cancelled plans
 ├── adrs/
 │   ├── README.md                  # chronological index
-│   └── 0001-scratch-base-and-multi-arch.md
+│   ├── 0001-scratch-base-and-multi-arch.md
+│   └── 0002-rootless-kaniko-on-silverblue.md
 ├── notes/                         # scratch space, meeting notes
 ├── scripts/
-│   └── build-multiarch.sh         # multi-arch buildx helper
+│   ├── build-multiarch.sh         # multi-arch buildx helper
+│   ├── build-demo.sh              # demo PoC: kaniko in rootless Docker
+│   └── verify-demo.sh             # demo PoC: assert uv + python work
 ├── examples/
-│   └── kaniko-build-pod.yaml      # example: kaniko-in-a-pod
+│   ├── kaniko-build-pod.yaml      # example: kaniko-in-a-pod
+│   └── demo-alpine-uv/            # demo PoC: Dockerfile.demo + README
 └── .github/
     └── workflows/
         └── images.yaml            # CI: build + push on tag
@@ -109,3 +116,5 @@ docker run --rm "${REGISTRY}/warmer:${VERSION}" --help
 - [Release runbook](docs/runbooks/release.md)
 - [ADR-0001: scratch base + multi-arch](adrs/0001-scratch-base-and-multi-arch.md)
 - [Upstream notes](docs/references/upstream.md)
+- [Plan: demo container via rootless kaniko](plans/2026-06-12-demo-alpine-uv-poc.md)
+- [ADR-0002: rootless kaniko on Silverblue](adrs/0002-rootless-kaniko-on-silverblue.md)

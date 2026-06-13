@@ -1,7 +1,7 @@
 # Build Chainguard-style Kaniko Images — Plan
 
 **Status:** Approved
-**Owner:** Dennis
+**Owner:** _(project owner)_
 **Created:** 2026-06-09
 **Last updated:** 2026-06-09
 
@@ -32,8 +32,8 @@ We need a kaniko image that we control end-to-end: a `scratch`-based, multi-arch
 
 ## Stakeholders
 
-- **Dennis** — owner, runs the cluster that consumes the images.
-- **Future-Dennis** — needs the runbook to cut releases without rediscovering the steps.
+- **Project owner** — owns the cluster that consumes the images.
+- **Future self** — needs the runbook to cut releases without rediscovering the steps.
 - **Upstream (`chainguard-forks/kaniko`)** — informs our rebase cadence, not a direct stakeholder.
 
 ## High-Level Approach
@@ -48,6 +48,11 @@ We need a kaniko image that we control end-to-end: a `scratch`-based, multi-arch
 1. **Phase 1: local multi-arch build (this plan).** Get the four images building and pushing from a workstation. ~1 day.
 2. **Phase 2: CI on tag push.** `.github/workflows/images.yaml` builds on tag, pushes, signs. ~0.5 day.
 3. **Phase 3: production rollout.** Pin a specific digest in our cluster manifests, verify with a real build, document the migration. ~1 day, on-demand.
+4. **Phase 4 (cross-cutting):** use the published kaniko image from a
+   downstream project to build an actual application image. The
+   demo-alpine-uv PoC ([2026-06-12](2026-06-12-demo-alpine-uv-poc.md))
+   is the first such consumer and is what proves the kaniko build is
+   usable by other projects, not just self-referential.
 
 ## Risks
 

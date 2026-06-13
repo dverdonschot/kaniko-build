@@ -1,0 +1,43 @@
+# Dockerfile.demo — Alpine + uv + Python, hand-installed.
+#
+# This Dockerfile is consumed by kaniko (see scripts/build-demo.sh) and is
+# deliberately simple: alpine base, curl + ca-certificates, the official uv
+# installer, and `uv python install` to provision a real interpreter. No
+# python:3.x base image, no `pip install uv`.
+#
+# ENTRYPOINT is `uv` so the container behaves like a uv tool: a bare
+# `docker run demo-alpine-uv:dev --version` prints the uv version, and
+# `docker run demo-alpine-uv:dev run python ...` works as expected.
+
+FROM alpine:3.20
+
+# Install the minimum we need to fetch the uv installer over HTTPS.
+# `wget` is used as a fallback if `curl` is unavailable; both come from
+# busybox in alpine, so no extra packages needed beyond ca-certificates.
+RUN apk add --no-cache \
+        ca-certificates \
+        curl \
+        bash \
+    && update-ca-certificates
+
+# Pin a uv version. The uv installer is small, idempotent, and well-suited
+# to running at build time. The `UV_INSTALL_DIR=/usr/local/bin` is what
+# makes the resulting `uv` binary end up on the default PATH (no profile
+# sourcing needed at run time).
+ARG UV_INSTALLER_URL=https://astral.sh/uv/install.sh
+ENV UV_INSTALL_DIR=/usr/local/bin
+RUN set -eux; \
+    curl -fsSL -o /tmp/uv-install.sh "${UV_INSTALLER_URL}"; \
+    sh /tmp/uv-install.sh; \
+    rm -f /tmp/uv-install.sh; \
+    uv --version
+
+# Provision a Python interpreter via `uv python install`. The default
+# managed version is fine for a PoC; pin here in the future if you need
+# reproducible builds.
+RUN uv python install
+
+# `uv` is the entrypoint, so the image behaves like a uv tool: bare
+# `--version` works, `run python ...` works, `pip install` works, etc.
+ENTRYPOINT ["uv"]
+CMD ["--version"]

@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-06-09
-**Deciders:** Dennis
+**Deciders:** _(project owner)_
 
 ## Context
 
